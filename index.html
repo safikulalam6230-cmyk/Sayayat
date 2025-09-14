@@ -1,0 +1,182 @@
+<!doctype html>
+
+<html lang="bn">  
+<head>  
+  <meta charset="utf-8" />  
+  <meta name="viewport" content="width=device-width,initial-scale=1" />  
+  <title>Modern Calculator</title>  
+  <style>  
+    body{font-family:system-ui;background:#f5f6fa;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;transition:.3s}  
+    body.dark{background:#1e1e1e;color:#fff}  
+    .calc{width:360px;background:#fff;border-radius:16px;padding:20px;box-shadow:0 6px 25px rgba(0,0,0,.15);transition:.3s}  
+    body.dark .calc{background:#2c2c2c;color:#fff}  
+    .display{min-height:70px;background:#fafafa;border-radius:10px;padding:12px;color:#111;font-size:26px;  
+             display:flex;flex-direction:column;justify-content:center;align-items:flex-end;box-shadow:inset 0 2px 6px rgba(0,0,0,.05);transition:.3s}  
+    body.dark .display{background:#444;color:#fff}  
+    .small{font-size:14px;color:#666}  
+    body.dark .small{color:#bbb}  
+    .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}  
+    button{padding:18px;border-radius:50%;border:0;background:#ecebff;color:#111;font-size:18px;font-weight:600;  
+           cursor:pointer;transition:all .25s;box-shadow:0 3px 6px rgba(0,0,0,.1)}  
+    button:hover{box-shadow:0 0 12px rgba(108,99,255,.7);transform:scale(1.05)}  
+    button:active{transform:scale(0.9);background:#d9d6ff}  
+    .op{background:#c7eaff}  
+    .eq{background:#6c63ff;color:#fff}  
+    .wide{grid-column:span 2;border-radius:25px}  
+    .fx{background:#ffe4d9}  
+    .theme-toggle{margin-top:10px;text-align:center}  
+    .theme-toggle button{border-radius:8px;background:#6c63ff;color:#fff;padding:8px 16px}  
+    .sci{background:#e1ffe1}  /* নতুন glow effect */  
+.num-glow {  
+  box-shadow:0 0 18px rgba(108,99,255,.9) !important;  
+  background:#dad7ff !important;  
+  transition:.3s;  
+}
+
+  </style>  
+</head>  
+<body>  
+  <div class="calc">  
+    <div class="display">  
+      <div class="small" id="exp"></div>  
+      <div id="res">0</div>  
+    </div>  
+    <div class="keys">  
+      <button onclick="press('C')">AC</button>  
+      <button onclick="press('⌫')">⌫</button>  
+      <button onclick="press('%')">%</button>  
+      <button class="op" onclick="press('/')">÷</button>  <button onclick="press('7',this)">7</button>  
+  <button onclick="press('8',this)">8</button>  
+  <button onclick="press('9',this)">9</button>  
+  <button class="op" onclick="press('*')">×</button>  
+
+  <button onclick="press('4',this)">4</button>  
+  <button onclick="press('5',this)">5</button>  
+  <button onclick="press('6',this)">6</button>  
+  <button class="op" onclick="press('-')">−</button>  
+
+  <button onclick="press('1',this)">1</button>  
+  <button onclick="press('2',this)">2</button>  
+  <button onclick="press('3',this)">3</button>  
+  <button class="op" onclick="press('+')">+</button>  
+
+  <button class="wide" onclick="press('0',this)">0</button>  
+  <button onclick="press('.')">.</button>  
+  <button class="eq" onclick="press('=')">=</button>  
+
+  <button class="fx wide" onclick="currencyConvert()">₹ → $</button>  
+  <!-- Scientific -->  
+  <button class="sci" onclick="square()">x²</button>  
+  <button class="sci" onclick="press('Math.sqrt(')">√</button>  
+  <button class="sci" onclick="press('Math.pow(')">xʸ</button>  
+  <button class="sci" onclick="press('Math.sin(')">sin</button>  
+  <button class="sci" onclick="press('Math.cos(')">cos</button>  
+  <button class="sci" onclick="press('Math.tan(')">tan</button>  
+</div>  
+
+<!-- Theme Toggle -->  
+<div class="theme-toggle">  
+  <button onclick="toggleTheme()">🌙 Dark / ☀️ Light</button>  
+</div>
+
+  </div>    <!-- আলাদা sound -->    <audio id="numSound">  
+    <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">  
+  </audio>  
+  <audio id="opSound">  
+    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">  
+  </audio>  <script>  
+let exp = "";  
+let history = [];  
+const expEl = document.getElementById("exp");  
+const resEl = document.getElementById("res");  
+const numSound = document.getElementById("numSound");  
+const opSound = document.getElementById("opSound");  
+  
+function playNum(){ numSound.currentTime=0; numSound.play(); if(navigator.vibrate) navigator.vibrate(40); }  
+function playOp(){ opSound.currentTime=0; opSound.play(); if(navigator.vibrate) navigator.vibrate(30); }  
+  
+function press(k,btn=null){  
+  // সংখ্যা হলে  
+  if(/[0-9.]/.test(k)){  
+    playNum();  
+    if(btn){  
+      btn.classList.add("num-glow");  
+      setTimeout(()=>btn.classList.remove("num-glow"),300);  
+    }  
+  } else {  
+    playOp();  
+  }  
+  
+  if(k==="C"){exp=""; update(); return;}  
+  if(k==="⌫"){exp=exp.slice(0,-1); update(); return;}  
+  if(k==="="){   
+    try{  
+      let result=eval(exp).toString();  
+      history.push(`${exp} = ${result}`);  
+      exp=result;  
+      if(result=="100" || result=="1000"){emojiEffect();}  
+    }catch{exp="";}  
+    update(); return;  
+  }  
+  
+  if(/[+\-*/%]/.test(k)){  
+    if(exp==="" && k!=="-") return;  
+    if(/[+\-*/%]$/.test(exp)) exp=exp.slice(0,-1);  
+  }  
+  
+  exp+=k;  
+  update();  
+}  
+  
+function update(){  
+  expEl.textContent=exp;  
+  try{  
+    if(exp && !/[+\-*/%]$/.test(exp)){  
+      resEl.textContent=eval(exp);  
+    } else resEl.textContent="0";  
+  }catch{resEl.textContent="0";}  
+}  
+  
+function currencyConvert(){  
+  playOp();  
+  if(resEl.textContent!=="0"){  
+    let inr=parseFloat(resEl.textContent);  
+    let usd=(inr/83).toFixed(2);  
+    resEl.textContent=`$${usd}`;  
+    expEl.textContent=`₹${inr} → USD`;  
+  }  
+}  
+  
+// Square  
+function square(){  
+  playOp();  
+  if(resEl.textContent!=="0"){  
+    let num=parseFloat(resEl.textContent);  
+    let sq=num*num;  
+    history.push(`${num}² = ${sq}`);  
+    exp=sq.toString();  
+    update();  
+  }  
+}  
+  
+function toggleTheme(){ document.body.classList.toggle("dark"); }  
+  
+// Emoji  
+function emojiEffect(){  
+  let emoji=document.createElement("div");  
+  emoji.textContent="🎉";  
+  emoji.style.position="fixed";  
+  emoji.style.fontSize="60px";  
+  emoji.style.top="50%";  
+  emoji.style.left="50%";  
+  emoji.style.transform="translate(-50%,-50%)";  
+  emoji.style.animation="pop 1s forwards";  
+  document.body.appendChild(emoji);  
+  setTimeout(()=>emoji.remove(),1200);  
+}  
+  
+let style=document.createElement("style");  
+style.textContent=`@keyframes pop{0%{opacity:0;transform:scale(0.5) translate(-50%,-50%)}50%{opacity:1;transform:scale(1.2) translate(-50%,-50%)}100%{opacity:0;transform:scale(0.5) translate(-50%,-50%)}}`;  
+document.head.appendChild(style);  
+</script>  </body>  
+</html>  
